@@ -30,6 +30,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
+  const [showUnauthorizedBanner, setShowUnauthorizedBanner] = useState(false)
 
   useEffect(() => {
     fetchFolders()
@@ -179,7 +180,16 @@ export default function Home() {
   const isMobileSidebarOpen = isMobile && !isSidebarCollapsed
   const isAuthorized = session?.user?.email === AUTHORIZED_EMAIL
   const canEdit = !!isAuthorized
-  const showUnauthorizedBanner = session && !isAuthorized
+
+  useEffect(() => {
+    if (session && !isAuthorized) {
+      setShowUnauthorizedBanner(true)
+      const timer = setTimeout(() => setShowUnauthorizedBanner(false), 5000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowUnauthorizedBanner(false)
+    }
+  }, [session, isAuthorized])
 
   if (!authChecked) {
     return (
@@ -275,9 +285,9 @@ export default function Home() {
       </div>
 
       {showUnauthorizedBanner && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-md px-6 py-5 rounded-xl bg-yellow-100 text-yellow-900 border border-yellow-200 shadow-md">
-          <p className="text-lg font-semibold">Read-only</p>
-          <p className="text-base mt-2 text-yellow-800 leading-relaxed">This account can view content but cannot make changes.</p>
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm px-5 py-4 rounded-lg bg-yellow-100 text-yellow-900 border border-yellow-200 shadow">
+          <p className="text-base font-semibold">Read-only</p>
+          <p className="text-sm mt-1 text-yellow-800">This account can view content but cannot make changes.</p>
         </div>
       )}
     </main>
