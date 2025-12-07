@@ -102,10 +102,15 @@ export const MathExtension = Node.create<MathExtensionOptions>({
         const newLatex = prompt('Edit Equation (LaTeX):', node.attrs.latex)
         if (newLatex !== null) {
            if (typeof getPos === 'function') {
-             editor.view.dispatch(editor.view.state.tr.setNodeMarkup(getPos(), undefined, { 
-               ...node.attrs,
-               latex: newLatex 
-             }))
+             const pos = getPos()
+             if (typeof pos === 'number') {
+               editor.view.dispatch(
+                 editor.view.state.tr.setNodeMarkup(pos, undefined, { 
+                   ...node.attrs,
+                   latex: newLatex 
+                 })
+               )
+             }
            }
         }
       })
