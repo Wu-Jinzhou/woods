@@ -179,6 +179,7 @@ export default function Home() {
   const isMobileSidebarOpen = isMobile && !isSidebarCollapsed
   const isAuthorized = session?.user?.email === AUTHORIZED_EMAIL
   const canEdit = !!isAuthorized
+  const showUnauthorizedBanner = session && !isAuthorized
 
   if (!authChecked) {
     return (
@@ -190,8 +191,8 @@ export default function Home() {
 
   return (
     <main className={clsx(
-      "relative flex h-screen w-full bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100 font-sans",
-      isMobileSidebarOpen ? "overflow-hidden" : "overflow-hidden md:overflow-auto"
+      "relative flex h-screen w-full bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100 font-sans overflow-y-scroll",
+      isMobileSidebarOpen ? "overflow-x-hidden" : "overflow-x-hidden"
     )}>
       <Sidebar 
         folders={folders}
@@ -270,8 +271,15 @@ export default function Home() {
                 </div>
               </div>
             )
-          )}
+        )}
       </div>
+
+      {showUnauthorizedBanner && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg bg-yellow-100 text-yellow-900 border border-yellow-200 shadow">
+          <p className="text-sm font-semibold">Read-only</p>
+          <p className="text-xs mt-1 text-yellow-800">This account can view content but cannot make changes.</p>
+        </div>
+      )}
     </main>
   )
 }
