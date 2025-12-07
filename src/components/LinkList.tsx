@@ -14,13 +14,14 @@ interface LinkListProps {
   }
   isRefetching?: boolean
   onOpenNote: () => void
+  canEdit?: boolean
   onDeleteLink: () => void
   onDeleteNote: () => void
   onMove: () => void
   onRefetch: () => void
 }
 
-export default function LinkList({ link, isRefetching, onOpenNote, onDeleteLink, onDeleteNote, onMove, onRefetch }: LinkListProps) {
+export default function LinkList({ link, isRefetching, canEdit = true, onOpenNote, onDeleteLink, onDeleteNote, onMove, onRefetch }: LinkListProps) {
   const [showMenu, setShowMenu] = useState(false)
 
   return (
@@ -70,76 +71,78 @@ export default function LinkList({ link, isRefetching, onOpenNote, onDeleteLink,
           {new Date(link.created_at).toLocaleDateString()}
         </span>
         
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowMenu(!showMenu)
-            }}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-          >
-            <MoreVertical size={16} />
-          </button>
+        {canEdit && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowMenu(!showMenu)
+              }}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            >
+              <MoreVertical size={16} />
+            </button>
 
-          {showMenu && (
-            <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowMenu(false)
-                }} 
-              />
-              <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-gray-100 dark:border-zinc-700 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
-                <button
+            {showMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
                   onClick={(e) => {
                     e.stopPropagation()
-                    onMove()
                     setShowMenu(false)
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <FolderInput size={14} />
-                  Move to Folder
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRefetch()
-                    setShowMenu(false)
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <RefreshCw size={14} />
-                  Refetch Metadata
-                </button>
-                <div className="h-px bg-gray-100 dark:bg-zinc-700 my-1" />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteNote()
-                    setShowMenu(false)
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <FileX size={14} />
-                  Clear Note
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteLink()
-                    setShowMenu(false)
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                >
-                  <Trash2 size={14} />
-                  Delete Link
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+                  }} 
+                />
+                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-gray-100 dark:border-zinc-700 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onMove()
+                      setShowMenu(false)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  >
+                    <FolderInput size={14} />
+                    Move to Folder
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onRefetch()
+                      setShowMenu(false)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  >
+                    <RefreshCw size={14} />
+                    Refetch Metadata
+                  </button>
+                  <div className="h-px bg-gray-100 dark:bg-zinc-700 my-1" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteNote()
+                      setShowMenu(false)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  >
+                    <FileX size={14} />
+                    Clear Note
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteLink()
+                      setShowMenu(false)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                  >
+                    <Trash2 size={14} />
+                    Delete Link
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

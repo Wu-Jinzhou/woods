@@ -12,6 +12,7 @@ interface FolderViewProps {
   folderId: string | null
   folderName: string
   onOpenNote: (linkId: string) => void
+  canEdit: boolean
 }
 
 interface LinkType {
@@ -23,7 +24,7 @@ interface LinkType {
   created_at: string
 }
 
-export default function FolderView({ folderId, folderName, onOpenNote }: FolderViewProps) {
+export default function FolderView({ folderId, folderName, onOpenNote, canEdit }: FolderViewProps) {
   const [links, setLinks] = useState<LinkType[]>([])
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
   const [refetchingLinkIds, setRefetchingLinkIds] = useState<Set<string>>(new Set())
@@ -38,6 +39,26 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   const [linkToMove, setLinkToMove] = useState<string | null>(null)
   const [availableFolders, setAvailableFolders] = useState<{id: string, name: string}[]>([])
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false)
+
+  useEffect(() => {
+    if (!isMoveModalOpen || !folderId) return
+
+    const loadFolders = async () => {
+      const { data, error } = await supabase
+        .from('folders')
+        .select('id, name')
+        .neq('id', folderId)
+        .order('name')
+
+      if (error) {
+        console.error('Error fetching folders:', error)
+      } else {
+        setAvailableFolders(data || [])
+      }
+    }
+
+    loadFolders()
+  }, [isMoveModalOpen, folderId])
 
   useEffect(() => {
     if (folderId) {
@@ -77,7 +98,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const addLink = async () => {
-    if (!newLinkUrl.trim() || !folderId) return
+    if (!canEdit || !newLinkUrl.trim() || !folderId) return
 
     setIsLoadingMetadata(true)
     const { title, image } = await fetchMetadata(newLinkUrl)
@@ -105,7 +126,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const importLinks = async () => {
-    if (!importText.trim() || !folderId) return
+    if (!canEdit || !importText.trim() || !folderId) return
 
     const lines = importText.split('\n').filter(url => url.trim())
     // Deduplicate or validate? Basic validation.
@@ -183,7 +204,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const refreshMetadata = async () => {
-    if (selectedLinkIds.size === 0) return
+    if (!canEdit || selectedLinkIds.size === 0) return
     
     const linksToRefresh = links.filter(l => selectedLinkIds.has(l.id))
     
@@ -267,7 +288,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
 
 
   const openMoveModal = async () => {
-    if (selectedLinkIds.size === 0) return
+    if (!canEdit || selectedLinkIds.size === 0) return
     
     // Fetch folders to move to
     const { data, error } = await supabase
@@ -286,6 +307,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const deleteLink = async (id: string) => {
+    if (!canEdit) return
     if (!window.confirm('Are you sure you want to delete this link?')) return
 
     const { error } = await supabase
@@ -301,6 +323,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const clearNote = async (id: string) => {
+    if (!canEdit) return
     if (!window.confirm('Are you sure you want to clear the notes for this link?')) return
 
     const { error } = await supabase
@@ -316,6 +339,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const moveLink = async (linkId: string, targetFolderId: string) => {
+    if (!canEdit) return
     const { error } = await supabase
       .from('links')
       .update({ folder_id: targetFolderId })
@@ -330,6 +354,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const refetchMetadata = async (linkId: string, url: string) => {
+    if (!canEdit) return
     setRefetchingLinkIds(prev => {
       const next = new Set(prev)
       next.add(linkId)
@@ -416,11 +441,12 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
 
   // Move Modal
   if (isMoveModalOpen) {
+    const moveCount = linkToMove ? 1 : selectedLinkIds.size
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-zinc-800">
           <div className="p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900 dark:text-white">Move {selectedLinkIds.size} links to...</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Move {moveCount} link{moveCount === 1 ? '' : 's'} to...</h3>
             <button onClick={() => setIsMoveModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
               <X size={20} />
             </button>
@@ -460,7 +486,28 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">{folderName}</h2>
           
           <div className="flex items-center gap-3 flex-wrap">
-          {isSelectionMode ? (
+          <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('card')}
+              className={clsx(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'card' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              )}
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={clsx(
+                "p-1.5 rounded-md transition-all",
+                viewMode === 'list' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              )}
+            >
+              <List size={18} />
+            </button>
+          </div>
+
+          {isSelectionMode && canEdit ? (
             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-200">
               <button
                 onClick={selectAll}
@@ -502,7 +549,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                 Cancel
               </button>
             </div>
-          ) : (
+          ) : canEdit ? (
             <>
               <button
                 onClick={() => setIsSelectionMode(true)}
@@ -512,30 +559,15 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                 <CheckSquare size={18} />
               </button>
               <div className="h-6 w-px bg-gray-200 dark:bg-zinc-800 mx-1" />
-              <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('card')}
-                  className={clsx(
-                    "p-1.5 rounded-md transition-all",
-                    viewMode === 'card' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <LayoutGrid size={18} />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={clsx(
-                    "p-1.5 rounded-md transition-all",
-                    viewMode === 'list' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <List size={18} />
-                </button>
-              </div>
-
               <button
                 onClick={() => setIsImporting(true)}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                disabled={!canEdit}
+                className={clsx(
+                  "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  canEdit
+                    ? "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                    : "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                )}
               >
                 <Upload size={18} />
                 <span className="hidden sm:inline">Import</span>
@@ -543,20 +575,25 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
 
               <button
                 onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg transition-colors shadow-sm"
+                disabled={!canEdit}
+                className={clsx(
+                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm",
+                  canEdit
+                    ? "text-white bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+                    : "text-gray-400 bg-gray-200 dark:bg-zinc-800 cursor-not-allowed"
+                )}
               >
                 <Plus size={18} />
                 <span className="hidden sm:inline">Add Link</span>
               </button>
             </>
-          )}
+          ) : null}
         </div>
-      </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {isAdding && (
+        {isAdding && canEdit && (
           <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
             <div className="flex gap-2">
               <input
@@ -588,7 +625,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
           </div>
         )}
 
-        {isImporting && (
+        {isImporting && canEdit && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-xl shadow-2xl p-6 border border-gray-200 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
@@ -653,7 +690,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
             {links.map(link => (
               <div key={link.id} className="relative group">
                 {/** Individual refetch indicator is managed per-link to avoid clearing metadata before its turn */} 
-                {isSelectionMode && (
+                {isSelectionMode && canEdit && (
                   <div className="absolute top-2 left-2 z-20">
                     <button
                       onClick={(e) => {
@@ -675,6 +712,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                   <LinkCard 
                     link={link}
                     isRefetching={refetchingLinkIds.has(link.id)}
+                    canEdit={canEdit}
                     onOpenNote={() => onOpenNote(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}
@@ -688,6 +726,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                   <LinkList 
                     link={link}
                     isRefetching={refetchingLinkIds.has(link.id)}
+                    canEdit={canEdit}
                     onOpenNote={() => onOpenNote(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}
@@ -702,6 +741,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   )

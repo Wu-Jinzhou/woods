@@ -7,6 +7,7 @@ import FolderView from '@/components/FolderView'
 import NoteEditor from '@/components/NoteEditor'
 import { supabase } from '@/lib/supabase'
 import clsx from 'clsx'
+import { Session } from '@supabase/supabase-js'
 
 interface LinkType {
   id: string
@@ -18,6 +19,8 @@ interface LinkType {
 }
 
 export default function Home() {
+  const AUTHORIZED_EMAIL = process.env.NEXT_PUBLIC_AUTH_EMAIL || ''
+
   const [folders, setFolders] = useState<{ id: string, name: string }[]>([])
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [links, setLinks] = useState<any[]>([])
@@ -25,6 +28,8 @@ export default function Home() {
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [session, setSession] = useState<Session | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
     fetchFolders()
@@ -41,6 +46,40 @@ export default function Home() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getSession()
+      setSession(data.session)
+      setAuthChecked(true)
+    }
+    initAuth()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const handleSignIn = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+      },
+    })
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setSelectedFolderId(null)
+    setActiveLinkId(null)
+  }
+
   const fetchFolders = async () => {
     const { data, error } = await supabase
       .from('folders')
@@ -55,6 +94,7 @@ export default function Home() {
   }
 
   const handleAddFolder = async (name: string) => {
+    if (!canEdit) return
     const { data, error } = await supabase
       .from('folders')
       .insert([{ name }])
@@ -69,6 +109,7 @@ export default function Home() {
   }
 
   const handleDeleteFolder = async (id: string) => {
+    if (!canEdit) return
     const { error } = await supabase
       .from('folders')
       .delete()
@@ -136,6 +177,16 @@ export default function Home() {
 
   const activeLink = openLinks.find(l => l.id === activeLinkId)
   const isMobileSidebarOpen = isMobile && !isSidebarCollapsed
+  const isAuthorized = session?.user?.email === AUTHORIZED_EMAIL
+  const canEdit = !!isAuthorized
+
+  if (!authChecked) {
+    return (
+      <main className="flex items-center justify-center h-screen bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Checking authentication…</p>
+      </main>
+    )
+  }
 
   return (
     <main className={clsx(
@@ -163,6 +214,10 @@ export default function Home() {
           setActiveLinkId(null)
           if (isMobile) setIsSidebarCollapsed(true)
         }}
+        canEdit={canEdit}
+        onSignIn={handleSignIn}
+        onSignOut={handleSignOut}
+        isAuthorized={isAuthorized}
       />
 
       {isMobileSidebarOpen && (
@@ -183,6 +238,7 @@ export default function Home() {
               initialContent={activeLink.note}
               url={activeLink.url}
               title={activeLink.title}
+              canEdit={canEdit}
               onClose={() => handleCloseNote(activeLink.id)}
               onTitleChange={(newTitle) => {
                 setOpenLinks(openLinks.map(l => l.id === activeLink.id ? { ...l, title: newTitle } : l))
@@ -193,6 +249,7 @@ export default function Home() {
               <FolderView 
                 folderId={selectedFolderId} 
                 folderName={folders.find(f => f.id === selectedFolderId)?.name || 'Folder'}
+                canEdit={canEdit}
                 onOpenNote={handleOpenNote}
               />
             ) : (

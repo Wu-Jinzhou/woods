@@ -22,6 +22,10 @@ interface SidebarProps {
   onSelectOpenLink: (id: string) => void
   onCloseOpenLink: (id: string) => void
   onLogoClick?: () => void
+  canEdit: boolean
+  onSignIn: () => void
+  onSignOut: () => void
+  isAuthorized: boolean
 }
 
 export default function Sidebar({
@@ -36,7 +40,11 @@ export default function Sidebar({
   activeLinkId,
   onSelectOpenLink,
   onCloseOpenLink,
-  onLogoClick
+  onLogoClick,
+  canEdit,
+  onSignIn,
+  onSignOut,
+  isAuthorized
 }: SidebarProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
@@ -136,12 +144,14 @@ export default function Sidebar({
                     <span className="truncate">{folder.name}</span>
                   </div>
                   
-                  <button
-                    onClick={(e) => handleDeleteFolder(e, folder.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={(e) => handleDeleteFolder(e, folder.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
 
                 {/* Open Tabs for this folder */}
@@ -187,7 +197,7 @@ export default function Sidebar({
       {/* Footer */}
       <div className="p-4 border-t border-gray-100 dark:border-zinc-800 space-y-3">
         {/* 1. Create Folder Button (Top) */}
-        {isCreating ? (
+        {isCreating && canEdit ? (
           <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
             <input
               type="text"
@@ -219,16 +229,22 @@ export default function Sidebar({
         ) : (
           <button
             onClick={() => setIsCreating(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-black hover:opacity-90 rounded-lg transition-colors shadow-sm"
+            disabled={!canEdit}
+            className={clsx(
+              "w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm",
+              canEdit
+                ? "text-white bg-gray-900 dark:bg-white dark:text-black hover:opacity-90"
+                : "text-gray-400 bg-gray-200 dark:bg-zinc-800 cursor-not-allowed"
+            )}
           >
             <Plus size={16} />
-            New Folder
+            {canEdit ? "New Folder" : "View Only"}
           </button>
         )}
 
         {/* 3. Links */}
-        <div className="text-sm text-black dark:text-white space-y-2 p-3 rounded-lg bg-gray-100 dark:bg-zinc-800">
-          <ul className="font-sans flex flex-col space-y-2">
+        <div className="text-sm text-black dark:text-white p-3 rounded-lg bg-gray-100 dark:bg-zinc-800">
+          <ul className="font-sans flex flex-col space-y-2 mb-2">
             <li>
               <a
                 className="flex items-center transition-all hover:text-gray-500"
@@ -260,7 +276,23 @@ export default function Sidebar({
               </a>
             </li>
           </ul>
-          <p className="ml-[2px] text-xs text-gray-600 dark:text-gray-300">Made by Jinzhou Wu</p>
+          <p className="mb-1 ml-[2px] text-xs text-gray-600 dark:text-gray-300">Made by Jinzhou Wu</p>
+          {!isAuthorized && (
+            <button
+              onClick={onSignIn}
+              className="ml-[2px] text-xs text-blue-600 dark:text-blue-400 hover:underline text-left"
+            >
+              Sign in for edit access
+            </button>
+          )}
+          {isAuthorized && (
+            <button
+              onClick={onSignOut}
+              className="ml-[2px] text-xs text-gray-500 dark:text-gray-400 hover:underline text-left"
+            >
+              Sign out
+            </button>
+          )}
         </div>
       </div>
     </div>

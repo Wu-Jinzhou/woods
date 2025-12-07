@@ -26,9 +26,10 @@ interface NoteEditorProps {
   title: string | null
   onClose: () => void
   onTitleChange?: (newTitle: string) => void
+  canEdit?: boolean
 }
 
-export default function NoteEditor({ linkId, initialContent, url, title, onClose, onTitleChange }: NoteEditorProps) {
+export default function NoteEditor({ linkId, initialContent, url, title, onClose, onTitleChange, canEdit = true }: NoteEditorProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [editableTitle, setEditableTitle] = useState(title || '')
   const [mathInput, setMathInput] = useState('')
@@ -40,6 +41,7 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
   }, [title])
 
   const saveTitle = async (newTitle: string) => {
+    if (!canEdit) return
     const { error } = await supabase
       .from('links')
       .update({ title: newTitle })
@@ -80,6 +82,7 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
         class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-200px)]',
       },
     },
+    editable: canEdit,
     onCreate: ({ editor }) => {
       migrateMathStrings(editor)
     },
@@ -116,14 +119,15 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
 
 
   const saveNote = async () => {
-    if (!editor) return
+    if (!editor || !canEdit) return
 
     setIsSaving(true)
     const content = editor.getHTML()
+    const normalizedContent = editor.isEmpty ? '' : content
 
     const { error } = await supabase
       .from('links')
-      .update({ note: content })
+      .update({ note: normalizedContent })
       .eq('id', linkId)
 
     setIsSaving(false)
@@ -136,7 +140,7 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
   // Auto-save
   useEffect(() => {
     const interval = setInterval(() => {
-      if (editor && editor.isFocused) {
+      if (editor && canEdit && editor.isFocused) {
         saveNote()
       }
     }, 3000)
@@ -204,7 +208,8 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
                 e.currentTarget.blur()
               }
             }}
-            className="text-3xl font-bold text-gray-900 dark:text-white font-serif mb-2 w-full bg-transparent border-none focus:outline-none focus:ring-0 p-0 placeholder-gray-300 dark:placeholder-zinc-700 resize-none overflow-hidden block"
+            readOnly={!canEdit}
+            className="text-3xl font-bold text-gray-900 dark:text-white font-serif mb-2 w-full bg-transparent border-none focus:outline-none focus:ring-0 p-0 placeholder-gray-300 dark:placeholder-zinc-700 resize-none overflow-hidden block disabled:opacity-70"
             placeholder="Untitled"
             rows={1}
           />
@@ -227,62 +232,64 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
       </div>
 
       {/* Toolbar */}
-      <div className="px-8 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-1 flex-wrap bg-white dark:bg-zinc-950 sticky top-0 z-10">
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} title="Bold">
-          <Bold size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} title="Italic">
-          <Italic size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} title="Underline">
-          <UnderlineIcon size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} title="Strikethrough">
-          <Strikethrough size={18} />
-        </ToolbarButton>
-        
-        <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
-        
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} title="Heading 1">
-          <Heading1 size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} title="Heading 2">
-          <Heading2 size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} title="Heading 3">
-          <Heading3 size={18} />
-        </ToolbarButton>
+      {canEdit && (
+        <div className="px-8 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-1 flex-wrap bg-white dark:bg-zinc-950 sticky top-0 z-10">
+          <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} title="Bold">
+            <Bold size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} title="Italic">
+            <Italic size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} title="Underline">
+            <UnderlineIcon size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} title="Strikethrough">
+            <Strikethrough size={18} />
+          </ToolbarButton>
+          
+          <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
+          
+          <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} title="Heading 1">
+            <Heading1 size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} title="Heading 2">
+            <Heading2 size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} title="Heading 3">
+            <Heading3 size={18} />
+          </ToolbarButton>
 
-        <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
 
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} title="Bullet List">
-          <List size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} title="Ordered List">
-          <ListOrdered size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={editor.isActive('taskList')} title="Task List">
-          <CheckSquare size={18} />
-        </ToolbarButton>
-        
-        <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
+          <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} title="Bullet List">
+            <List size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} title="Ordered List">
+            <ListOrdered size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={editor.isActive('taskList')} title="Task List">
+            <CheckSquare size={18} />
+          </ToolbarButton>
+          
+          <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
 
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} isActive={editor.isActive('blockquote')} title="Quote">
-          <Quote size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} title="Code Block">
-          <Code size={18} />
-        </ToolbarButton>
-        <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
-        <ToolbarButton onClick={insertInlineMath} isActive={editor.isActive('inlineMath')} title="Inline Equation">
-          <Sigma size={18} />
-        </ToolbarButton>
-        <ToolbarButton onClick={insertBlockMath} isActive={editor.isActive('blockMath')} title="Block Equation">
-          <Sigma size={18} className="rotate-90" />
-        </ToolbarButton>
-      </div>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} isActive={editor.isActive('blockquote')} title="Quote">
+            <Quote size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} title="Code Block">
+            <Code size={18} />
+          </ToolbarButton>
+          <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
+          <ToolbarButton onClick={insertInlineMath} isActive={editor.isActive('inlineMath')} title="Inline Equation">
+            <Sigma size={18} />
+          </ToolbarButton>
+          <ToolbarButton onClick={insertBlockMath} isActive={editor.isActive('blockMath')} title="Block Equation">
+            <Sigma size={18} className="rotate-90" />
+          </ToolbarButton>
+        </div>
+      )}
 
-      {activeMathType && (
+      {activeMathType && canEdit && (
         <div className="px-8 py-3 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center gap-3">
           <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
             {activeMathType === 'inline' ? 'Inline math' : 'Block math'}
