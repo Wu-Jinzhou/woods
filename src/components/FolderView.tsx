@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { LayoutGrid, List, Plus, Upload, X, Trash2, CheckSquare, Square, RefreshCw, FolderOpen } from 'lucide-react'
 import LinkCard from './LinkCard'
@@ -13,6 +13,8 @@ interface FolderViewProps {
   folderName: string
   onOpenNote: (linkId: string) => void
   canEdit: boolean
+  scrollPosition?: number
+  onScrollChange?: (pos: number) => void
 }
 
 interface LinkType {
@@ -24,7 +26,7 @@ interface LinkType {
   created_at: string
 }
 
-export default function FolderView({ folderId, folderName, onOpenNote, canEdit }: FolderViewProps) {
+export default function FolderView({ folderId, folderName, onOpenNote, canEdit, scrollPosition = 0, onScrollChange }: FolderViewProps) {
   const [links, setLinks] = useState<LinkType[]>([])
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
   const [refetchingLinkIds, setRefetchingLinkIds] = useState<Set<string>>(new Set())
@@ -39,6 +41,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
   const [linkToMove, setLinkToMove] = useState<string | null>(null)
   const [availableFolders, setAvailableFolders] = useState<{id: string, name: string}[]>([])
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false)
+  const contentRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!isMoveModalOpen || !folderId) return
@@ -78,6 +81,12 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
       setViewMode(saved)
     }
   }, [])
+
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = scrollPosition
+    }
+  }, [scrollPosition])
 
   const setViewModePersisted = (mode: 'card' | 'list') => {
     setViewMode(mode)
@@ -455,6 +464,13 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
     )
   }
 
+  const openNoteWithScroll = (id: string) => {
+    if (contentRef.current) {
+      onScrollChange?.(contentRef.current.scrollTop)
+    }
+    onOpenNote(id)
+  }
+
   // Move Modal
   if (isMoveModalOpen) {
     const moveCount = linkToMove ? 1 : selectedLinkIds.size
@@ -497,7 +513,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
 
 
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-10 overflow-auto">
+      <div className="py-6 px-6 lg:px-8 xl:px-10 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-10 overflow-auto">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">{folderName}</h2>
           
@@ -608,7 +624,11 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div
+        ref={contentRef}
+        className="flex-1 overflow-y-auto py-6"
+        onScroll={(e) => onScrollChange?.((e.target as HTMLDivElement).scrollTop)}
+      >
         {isAdding && canEdit && (
           <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
             <div className="flex gap-2">
@@ -729,7 +749,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
                     link={link}
                     isRefetching={refetchingLinkIds.has(link.id)}
                     canEdit={canEdit}
-                    onOpenNote={() => onOpenNote(link.id)} 
+                    onOpenNote={() => openNoteWithScroll(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}
                     onMove={() => {
@@ -743,7 +763,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
                     link={link}
                     isRefetching={refetchingLinkIds.has(link.id)}
                     canEdit={canEdit}
-                    onOpenNote={() => onOpenNote(link.id)} 
+                    onOpenNote={() => openNoteWithScroll(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}
                     onMove={() => {

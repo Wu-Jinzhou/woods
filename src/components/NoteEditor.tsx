@@ -34,6 +34,7 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
   const [editableTitle, setEditableTitle] = useState(title || '')
   const [mathInput, setMathInput] = useState('')
   const [activeMathType, setActiveMathType] = useState<'inline' | 'block' | null>(null)
+  const [isEmpty, setIsEmpty] = useState(!initialContent)
 
   // Update local title if prop changes (e.g. from external refresh)
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
     content: initialContent || '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-200px)]',
+        class: 'prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-200px)] leading-relaxed md:leading-loose',
       },
     },
     editable: canEdit,
@@ -98,6 +99,10 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
         setActiveMathType(null)
         setMathInput('')
       }
+      setIsEmpty(editor.isEmpty)
+    },
+    onUpdate: ({ editor }) => {
+      setIsEmpty(editor.isEmpty)
     }
   })
 
@@ -186,49 +191,51 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative">
       {/* Header */}
 
-      <div className="px-8 py-6 border-b border-gray-100 dark:border-zinc-800 flex items-start justify-between bg-white dark:bg-zinc-950 z-10">
-        <div className="flex-1 min-w-0 mr-4">
-          <textarea
-            value={editableTitle}
-            onChange={(e) => {
-              setEditableTitle(e.target.value)
-              e.target.style.height = 'auto'
-              e.target.style.height = e.target.scrollHeight + 'px'
-            }}
-            ref={(ref) => {
-              if (ref) {
-                ref.style.height = 'auto'
-                ref.style.height = ref.scrollHeight + 'px'
-              }
-            }}
-            onBlur={() => saveTitle(editableTitle)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                e.currentTarget.blur()
-              }
-            }}
-            readOnly={!canEdit}
-            className="text-3xl font-bold text-gray-900 dark:text-white font-serif mb-2 w-full bg-transparent border-none focus:outline-none focus:ring-0 p-0 placeholder-gray-300 dark:placeholder-zinc-700 resize-none overflow-hidden block disabled:opacity-70"
-            placeholder="Untitled"
-            rows={1}
-          />
-          <a 
-            href={url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors w-fit max-w-full"
+      <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-10">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0 mr-2">
+            <textarea
+              value={editableTitle}
+              onChange={(e) => {
+                setEditableTitle(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = e.target.scrollHeight + 'px'
+              }}
+              ref={(ref) => {
+                if (ref) {
+                  ref.style.height = 'auto'
+                  ref.style.height = ref.scrollHeight + 'px'
+                }
+              }}
+              onBlur={() => saveTitle(editableTitle)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.currentTarget.blur()
+                }
+              }}
+              readOnly={!canEdit}
+              className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-serif mb-2 w-full bg-transparent border-none focus:outline-none focus:ring-0 p-0 placeholder-gray-300 dark:placeholder-zinc-700 resize-none overflow-hidden block disabled:opacity-70 break-words"
+              placeholder="Untitled"
+              rows={1}
+            />
+            <a 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors w-full max-w-full"
+            >
+              <ExternalLink size={14} className="flex-shrink-0" />
+              <span className="break-words">{url}</span>
+            </a>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex-shrink-0"
           >
-            <ExternalLink size={14} className="flex-shrink-0" />
-            <span className="truncate">{url}</span>
-          </a>
+            <X size={24} />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-        >
-          <X size={24} />
-        </button>
       </div>
 
       {/* Toolbar */}
@@ -307,9 +314,25 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
       {/* Editor Content */}
       <div className="flex-1 overflow-y-auto px-8 py-8">
         <div className="max-w-3xl mx-auto pb-20">
+          {isEmpty && (
+            <div className="mb-4 text-sm text-gray-500 dark:text-gray-400 italic">No notes yet</div>
+          )}
           <EditorContent editor={editor} />
         </div>
       </div>
+
+      <style jsx global>{`
+        .ProseMirror .tiptap-mathematics-render[data-type="block-math"] {
+          display: block;
+          text-align: center;
+          font-size: 1.35rem;
+          line-height: 1.6;
+          margin: 1.75rem auto;
+        }
+        .ProseMirror .tiptap-mathematics-render[data-type="block-math"] .katex-display {
+          margin: 0 auto;
+        }
+      `}</style>
     </div>
   )
 }

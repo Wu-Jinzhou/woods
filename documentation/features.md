@@ -26,6 +26,7 @@
         - **Inline**: Type `$E=mc^2$` to insert inline math.
         - **Block**: Type `$$\sum_{i=0}^n i^2$$` to insert block math.
         - **Editing**: Click any equation to open a **Bubble Menu** and edit the LaTeX code directly.
+    - **Readability**: Note body uses a roomier line height; block equations render larger and centered for easier reading.
 - **Multi-line Titles**: Note titles auto-expand to fit long text.
 - **Auto-save**: Notes and titles are saved automatically on blur or interaction.
 

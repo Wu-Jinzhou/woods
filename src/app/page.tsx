@@ -31,6 +31,7 @@ export default function Home() {
   const [session, setSession] = useState<Session | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
   const [showUnauthorizedBanner, setShowUnauthorizedBanner] = useState(false)
+  const [folderScroll, setFolderScroll] = useState(0)
 
   useEffect(() => {
     fetchFolders()
@@ -200,16 +201,19 @@ export default function Home() {
   }
 
   return (
-    <main className={clsx(
-      "relative flex h-screen w-full bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100 font-sans overflow-y-scroll",
-      isMobileSidebarOpen ? "overflow-x-hidden" : "overflow-x-hidden"
-    )}>
+    <main
+      className={clsx(
+        "relative flex h-screen w-full bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100 font-sans overflow-y-scroll",
+        isMobileSidebarOpen ? "overflow-x-hidden" : "overflow-x-hidden"
+      )}
+    >
       <Sidebar 
         folders={folders}
         selectedFolderId={selectedFolderId} 
         onSelectFolder={(id) => {
           setSelectedFolderId(id)
           setActiveLinkId(null) // Go back to folder view when selecting a folder
+          setFolderScroll(0)
           if (isMobile) setIsSidebarCollapsed(true)
         }}
         onAddFolder={handleAddFolder}
@@ -223,6 +227,7 @@ export default function Home() {
         onLogoClick={() => {
           setSelectedFolderId(null)
           setActiveLinkId(null)
+          setFolderScroll(0)
           if (isMobile) setIsSidebarCollapsed(true)
         }}
         canEdit={canEdit}
@@ -261,6 +266,8 @@ export default function Home() {
                 folderId={selectedFolderId} 
                 folderName={folders.find(f => f.id === selectedFolderId)?.name || 'Folder'}
                 canEdit={canEdit}
+                scrollPosition={folderScroll}
+                onScrollChange={(pos) => setFolderScroll(pos)}
                 onOpenNote={handleOpenNote}
               />
             ) : (
