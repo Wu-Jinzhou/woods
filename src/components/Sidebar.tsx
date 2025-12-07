@@ -117,7 +117,7 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <div className="mb-6">
           <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-2">Folders</h3>
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {folders.map(folder => (
               <div key={folder.id}>
                 <div

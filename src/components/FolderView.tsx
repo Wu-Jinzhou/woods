@@ -538,7 +538,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
               >
                 <Upload size={18} />
-                Import
+                <span className="hidden sm:inline">Import</span>
               </button>
 
               <button
@@ -546,12 +546,12 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg transition-colors shadow-sm"
               >
                 <Plus size={18} />
-                Add Link
+                <span className="hidden sm:inline">Add Link</span>
               </button>
             </>
           )}
         </div>
-        </div>
+      </div>
       </div>
 
       {/* Content */}
