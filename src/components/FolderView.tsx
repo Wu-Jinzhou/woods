@@ -70,6 +70,22 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
     }
   }, [folderId])
 
+  // Persist view mode across openings/closures
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const saved = window.localStorage.getItem('woods:viewMode')
+    if (saved === 'card' || saved === 'list') {
+      setViewMode(saved)
+    }
+  }, [])
+
+  const setViewModePersisted = (mode: 'card' | 'list') => {
+    setViewMode(mode)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('woods:viewMode', mode)
+    }
+  }
+
   const fetchLinks = async () => {
     if (!folderId) return
     const { data, error } = await supabase
@@ -487,21 +503,21 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
           
           <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('card')}
-              className={clsx(
-                "p-1.5 rounded-md transition-all",
-                viewMode === 'card' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              )}
-            >
-              <LayoutGrid size={18} />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={clsx(
-                "p-1.5 rounded-md transition-all",
-                viewMode === 'list' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              )}
+              <button
+                  onClick={() => setViewModePersisted('card')}
+                  className={clsx(
+                    "p-1.5 rounded-md transition-all",
+                    viewMode === 'card' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  )}
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button
+                  onClick={() => setViewModePersisted('list')}
+                  className={clsx(
+                    "p-1.5 rounded-md transition-all",
+                    viewMode === 'list' ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  )}
             >
               <List size={18} />
             </button>

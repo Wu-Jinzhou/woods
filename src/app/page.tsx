@@ -275,9 +275,9 @@ export default function Home() {
       </div>
 
       {showUnauthorizedBanner && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg bg-yellow-100 text-yellow-900 border border-yellow-200 shadow">
-          <p className="text-sm font-semibold">Read-only</p>
-          <p className="text-xs mt-1 text-yellow-800">This account can view content but cannot make changes.</p>
+        <div className="fixed bottom-6 right-6 z-50 max-w-md px-6 py-5 rounded-xl bg-yellow-100 text-yellow-900 border border-yellow-200 shadow-md">
+          <p className="text-lg font-semibold">Read-only</p>
+          <p className="text-base mt-2 text-yellow-800 leading-relaxed">This account can view content but cannot make changes.</p>
         </div>
       )}
     </main>
