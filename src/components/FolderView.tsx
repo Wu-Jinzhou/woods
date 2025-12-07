@@ -26,6 +26,7 @@ interface LinkType {
 export default function FolderView({ folderId, folderName, onOpenNote }: FolderViewProps) {
   const [links, setLinks] = useState<LinkType[]>([])
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [refetchingLinkIds, setRefetchingLinkIds] = useState<Set<string>>(new Set())
   const [isAdding, setIsAdding] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [newLinkUrl, setNewLinkUrl] = useState('')
@@ -136,25 +137,40 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
     if (selectedLinkIds.size === 0) return
     
     const linksToRefresh = links.filter(l => selectedLinkIds.has(l.id))
-    const updatedLinks = [...links]
     
     // Process sequentially or in small batches to avoid overwhelming the server/browser
     for (const link of linksToRefresh) {
-      const { title, image } = await fetchMetadata(link.url)
-      const finalImage = image || `https://www.google.com/s2/favicons?sz=64&domain_url=${link.url}`
-      
-      const { error } = await supabase
-        .from('links')
-        .update({ title: title || link.url, image_url: finalImage })
-        .eq('id', link.id)
+      setRefetchingLinkIds(prev => {
+        const next = new Set(prev)
+        next.add(link.id)
+        return next
+      })
 
-      if (!error) {
-        // Update local state
-        const index = updatedLinks.findIndex(l => l.id === link.id)
-        if (index !== -1) {
-          updatedLinks[index] = { ...updatedLinks[index], title: title || link.url, image_url: finalImage }
-          setLinks([...updatedLinks]) // Trigger re-render incrementally
+      try {
+        const { title, image } = await fetchMetadata(link.url)
+        const finalImage = image || `https://www.google.com/s2/favicons?sz=64&domain_url=${link.url}`
+        
+        const { error } = await supabase
+          .from('links')
+          .update({ title: title || link.url, image_url: finalImage })
+          .eq('id', link.id)
+
+        if (!error) {
+          setLinks(prev => {
+            const updated = [...prev]
+            const index = updated.findIndex(l => l.id === link.id)
+            if (index !== -1) {
+              updated[index] = { ...updated[index], title: title || link.url, image_url: finalImage }
+            }
+            return updated
+          })
         }
+      } finally {
+        setRefetchingLinkIds(prev => {
+          const next = new Set(prev)
+          next.delete(link.id)
+          return next
+        })
       }
     }
     
@@ -265,42 +281,56 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   }
 
   const refetchMetadata = async (linkId: string, url: string) => {
+    setRefetchingLinkIds(prev => {
+      const next = new Set(prev)
+      next.add(linkId)
+      return next
+    })
+
     let attempts = 0
     const maxAttempts = 3
 
-    while (attempts < maxAttempts) {
-      try {
-        const res = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`)
-        const data = await res.json()
-        
-        if (data.title) {
-          const { error } = await supabase
-            .from('links')
-            .update({ 
+    try {
+      while (attempts < maxAttempts) {
+        try {
+          const res = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`)
+          const data = await res.json()
+          
+          if (data.title) {
+            const { error } = await supabase
+              .from('links')
+              .update({ 
+                title: data.title,
+                description: data.description,
+                image_url: data.image 
+              })
+              .eq('id', linkId)
+
+            if (error) throw error
+
+            setLinks(prev => prev.map(l => l.id === linkId ? { 
+              ...l, 
               title: data.title,
-              description: data.description,
               image_url: data.image 
-            })
-            .eq('id', linkId)
-
-          if (error) throw error
-
-          setLinks(links.map(l => l.id === linkId ? { 
-            ...l, 
-            title: data.title,
-            image_url: data.image 
-          } : l))
-          return // Success
+            } : l))
+            return // Success
+          }
+          break // If no title but successful fetch, don't retry
+        } catch (error) {
+          attempts++
+          if (attempts < maxAttempts) {
+            // Wait 1s before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+          // If max attempts reached, we just exit the loop and function ends (ignoring error)
         }
-        break // If no title but successful fetch, don't retry
-      } catch (error) {
-        attempts++
-        if (attempts < maxAttempts) {
-          // Wait 1s before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        }
-        // If max attempts reached, we just exit the loop and function ends (ignoring error)
       }
+    } finally {
+      setRefetchingLinkIds(prev => {
+        const next = new Set(prev)
+        next.delete(linkId)
+        return next
+      })
     }
   }
 
@@ -552,6 +582,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
           )}>
             {links.map(link => (
               <div key={link.id} className="relative group">
+                {/** Individual refetch indicator is managed per-link to avoid clearing metadata before its turn */} 
                 {isSelectionMode && (
                   <div className="absolute top-2 left-2 z-20">
                     <button
@@ -572,7 +603,8 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                 )}
                 {viewMode === 'card' ? (
                   <LinkCard 
-                    link={link} 
+                    link={link}
+                    isRefetching={refetchingLinkIds.has(link.id)}
                     onOpenNote={() => onOpenNote(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}
@@ -584,7 +616,8 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                   />
                 ) : (
                   <LinkList 
-                    link={link} 
+                    link={link}
+                    isRefetching={refetchingLinkIds.has(link.id)}
                     onOpenNote={() => onOpenNote(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}

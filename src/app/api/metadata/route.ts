@@ -12,6 +12,27 @@ export async function GET(request: Request) {
   }
 
   try {
+    const parsedUrl = (() => {
+      try {
+        return new URL(url)
+      } catch {
+        return null
+      }
+    })()
+    const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    const isAlignmentForum = parsedUrl?.hostname.includes('alignmentforum.org')
+    const baseHeaders: Record<string, string> = {
+      'User-Agent': userAgent,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    }
+    if (isAlignmentForum) {
+      baseHeaders['Referer'] = 'https://www.alignmentforum.org/'
+      baseHeaders['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0'
+    } else if (parsedUrl) {
+      baseHeaders['Referer'] = parsedUrl.origin
+    }
+
     // 1. Check for DOI (Digital Object Identifier)
     const doiMatch = url.match(/(10\.\d{4,9}\/[-._;()/:A-Z0-9]+)/i)
     if (doiMatch) {
@@ -37,40 +58,36 @@ export async function GET(request: Request) {
     }
 
     // 2. ArXiv PDF Handling
-    if (url.includes('arxiv.org/pdf/')) {
-      const absUrl = url.replace('/pdf/', '/abs/').replace('.pdf', '')
-      const response = await fetch(absUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      })
+    const isArxivPdf = url.includes('arxiv.org/pdf/')
+    const isArxivAbs = url.includes('arxiv.org/abs/')
+    if (isArxivPdf || isArxivAbs) {
+      const absUrl = isArxivPdf ? url.replace('/pdf/', '/abs/').replace('.pdf', '') : url
+      const response = await fetch(absUrl, { headers: baseHeaders })
       const html = await response.text()
       const $ = cheerio.load(html)
-      const title = $('meta[property="og:title"]').attr('content') || $('title').text()
-      const description = $('meta[property="og:description"]').attr('content') || ''
-      
+      const rawTitle = $('meta[property="og:title"]').attr('content') || $('meta[name="citation_title"]').attr('content') || $('title').text()
+      const description =
+        $('meta[property="og:description"]').attr('content') ||
+        $('meta[name="citation_abstract"]').attr('content') ||
+        $('blockquote.abstract').text().replace(/^Abstract:\s*/, '') ||
+        ''
+      const cleanedTitle = rawTitle?.replace(/\s*\[[^\]]+]\s*/g, '').trim()
+
       return NextResponse.json({
-        title: title?.replace(' [math.GM]', '') || url.split('/').pop(),
-        description,
+        title: cleanedTitle || url.split('/').pop(),
+        description: description.trim(),
         image: null
       })
     }
 
     // 3. General Scraping
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': new URL(url).origin
-      }
-    })
+    const response = await fetch(url, { headers: baseHeaders })
 
     const contentType = response.headers.get('content-type') || ''
     
     // PDF Handling
     if (contentType.includes('application/pdf') || (url.endsWith('.pdf') && !contentType.includes('text/html'))) {
-       let parser = null
+       let parser: PDFParse | null = null
        try {
          const arrayBuffer = await response.arrayBuffer()
          const buffer = Buffer.from(arrayBuffer)

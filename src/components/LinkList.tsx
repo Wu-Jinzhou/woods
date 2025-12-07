@@ -12,6 +12,7 @@ interface LinkListProps {
     note: string | null
     created_at: string
   }
+  isRefetching?: boolean
   onOpenNote: () => void
   onDeleteLink: () => void
   onDeleteNote: () => void
@@ -19,7 +20,7 @@ interface LinkListProps {
   onRefetch: () => void
 }
 
-export default function LinkList({ link, onOpenNote, onDeleteLink, onDeleteNote, onMove, onRefetch }: LinkListProps) {
+export default function LinkList({ link, isRefetching, onOpenNote, onDeleteLink, onDeleteNote, onMove, onRefetch }: LinkListProps) {
   const [showMenu, setShowMenu] = useState(false)
 
   return (
@@ -54,6 +55,11 @@ export default function LinkList({ link, onOpenNote, onDeleteLink, onDeleteNote,
       </div>
 
       <div className="flex items-center gap-4">
+        {isRefetching && (
+          <div className="text-blue-600 dark:text-blue-400">
+            <RefreshCw size={16} className="animate-spin" />
+          </div>
+        )}
         {link.note && (
           <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">
             <FileText size={10} />

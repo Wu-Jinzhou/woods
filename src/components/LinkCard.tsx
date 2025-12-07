@@ -13,6 +13,7 @@ interface LinkCardProps {
     note: string | null
     created_at: string
   }
+  isRefetching?: boolean
   onOpenNote: (linkId: string) => void
   onDeleteLink: (linkId: string) => void
   onDeleteNote: (linkId: string) => void
@@ -20,7 +21,7 @@ interface LinkCardProps {
   onRefetch: () => void
 }
 
-export default function LinkCard({ link, onOpenNote, onDeleteLink, onDeleteNote, onMove, onRefetch }: LinkCardProps) {
+export default function LinkCard({ link, isRefetching, onOpenNote, onDeleteLink, onDeleteNote, onMove, onRefetch }: LinkCardProps) {
   const [showMenu, setShowMenu] = useState(false)
 
   return (
@@ -102,6 +103,11 @@ export default function LinkCard({ link, onOpenNote, onDeleteLink, onDeleteNote,
       </div>
 
       <div className="aspect-video w-full bg-gray-100 dark:bg-zinc-800 relative overflow-hidden cursor-pointer" onClick={() => onOpenNote(link.id)}>
+        {isRefetching && (
+          <div className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-white/90 dark:bg-black/60 shadow-sm text-blue-600 dark:text-blue-400">
+            <RefreshCw size={14} className="animate-spin" />
+          </div>
+        )}
         {link.image_url ? (
           <img 
             src={link.image_url} 

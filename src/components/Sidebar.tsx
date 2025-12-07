@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
   Folder, Plus, Trash2, ChevronLeft, ChevronRight, X,
-  MoreVertical, Edit2, Check, Moon, Sun, Laptop, FileText
+  MoreVertical, Edit2, Check, FileText, ExternalLink
 } from 'lucide-react'
 import clsx from 'clsx'
 import Image from 'next/image'
-import { useTheme } from 'next-themes'
 
 interface SidebarProps {
   folders: { id: string, name: string }[]
@@ -39,12 +38,6 @@ export default function Sidebar({
 }: SidebarProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const handleCreateFolder = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault()
@@ -181,43 +174,25 @@ export default function Sidebar({
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-100 dark:border-zinc-800">
-        <div className="flex items-center justify-between px-2 py-2 text-xs text-gray-400 dark:text-gray-500">
-          <span>v0.2.0</span>
-          
-          {mounted && (
-            <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
-              <button
-                onClick={() => setTheme('light')}
-                className={clsx(
-                  "p-1.5 rounded-md transition-all",
-                  theme === 'light' ? "bg-white dark:bg-zinc-600 text-yellow-500 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                )}
-                title="Light Mode"
-              >
-                <Sun size={14} />
-              </button>
-              <button
-                onClick={() => setTheme('system')}
-                className={clsx(
-                  "p-1.5 rounded-md transition-all",
-                  theme === 'system' ? "bg-white dark:bg-zinc-600 text-blue-500 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                )}
-                title="System Mode"
-              >
-                <Laptop size={14} />
-              </button>
-              <button
-                onClick={() => setTheme('dark')}
-                className={clsx(
-                  "p-1.5 rounded-md transition-all",
-                  theme === 'dark' ? "bg-white dark:bg-zinc-600 text-purple-500 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                )}
-                title="Dark Mode"
-              >
-                <Moon size={14} />
-              </button>
-            </div>
-          )}
+        <div className="flex items-center justify-between px-2 py-2 text-xs text-gray-500 dark:text-gray-400 gap-2">
+          <a
+            href="https://github.com/Wu-Jinzhou/woods"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            <ExternalLink size={14} />
+            <span>GitHub</span>
+          </a>
+          <a
+            href="https://www.jinzhouwu.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            <ExternalLink size={14} />
+            <span>Home</span>
+          </a>
         </div>
         {isCreating ? (
           <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">

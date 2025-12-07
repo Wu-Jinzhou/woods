@@ -36,7 +36,7 @@ export default function NotFound() {
           placeholder="blur"
         />
       </div>
-      <div className="flex-grow flex flex-col items-center justify-center px-8 text-[#FAF9EE] font-[anziano]">
+      <div className="flex-grow flex flex-col items-center justify-center px-8 text-gray-100 font-[anziano]">
         <h1 className="text-6xl md:text-7xl text-center mb-2">
           You've reached the backwoods.
         </h1>

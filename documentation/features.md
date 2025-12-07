@@ -20,6 +20,7 @@
     - Bullet Lists, Ordered Lists
     - Blockquotes
     - Code Blocks
+    - Inline and block equations (LaTeX)
 - **Multi-line Titles**: Note titles auto-expand to fit long text.
 - **Auto-save**: Notes and titles are saved automatically on blur or interaction.
 
@@ -38,8 +39,6 @@ The application uses a sophisticated strategy to retrieve metadata:
 
 ## 5. User Interface
 - **Theme Support**:
-    - **Light Mode**: Premium `#FAF9EE` background.
-    - **Dark Mode**: Deep `#0a0a0a` background.
-    - **System**: Follows OS preference.
+    - Follows OS light/dark preference automatically.
 - **Responsive Design**: Adapts to different screen sizes (though primarily optimized for desktop/tablet).
 - **Animations**: Subtle transitions and hover effects for a polished feel.
