@@ -38,6 +38,7 @@ A wrapper around the Tiptap editor. It manages:
 - The editable note title (using an auto-expanding textarea).
 - Saving changes to Supabase.
 - Rendering the rich text toolbar.
+- **Extensions**: Configured with `StarterKit`, `Link`, `TaskList`, `Mathematics` (Inline/Block), and `BubbleMenu` for inline formula editing.
 
 ### `api/metadata/route.ts`
 A server-side API route that handles metadata extraction. It implements the logic for:

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
   Folder, Plus, Trash2, ChevronLeft, ChevronRight, X,
-  MoreVertical, Edit2, Check, FileText, ExternalLink
+  MoreVertical, Edit2, Check, FileText
 } from 'lucide-react'
 import clsx from 'clsx'
 import Image from 'next/image'
@@ -173,27 +173,8 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-100 dark:border-zinc-800">
-        <div className="flex items-center justify-between px-2 py-2 text-xs text-gray-500 dark:text-gray-400 gap-2">
-          <a
-            href="https://github.com/Wu-Jinzhou/woods"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            <ExternalLink size={14} />
-            <span>GitHub</span>
-          </a>
-          <a
-            href="https://www.jinzhouwu.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            <ExternalLink size={14} />
-            <span>Home</span>
-          </a>
-        </div>
+      <div className="p-4 border-t border-gray-100 dark:border-zinc-800 space-y-6">
+        {/* 1. Create Folder Button (Top) */}
         {isCreating ? (
           <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
             <input
@@ -226,12 +207,58 @@ export default function Sidebar({
         ) : (
           <button
             onClick={() => setIsCreating(true)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-black hover:opacity-90 rounded-lg transition-colors shadow-sm"
           >
             <Plus size={16} />
             New Folder
           </button>
         )}
+
+        {/* 2. Introduction Text */}
+        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 leading-relaxed">
+          <p>
+            <strong className="text-gray-900 dark:text-gray-100">Woods</strong> is my personal knowledge base that helps me organize knowledge and tabs.
+          </p>
+          <p className="opacity-80">
+            It is currently being developed for my personal use and is expected to roll out to other users in the future.
+          </p>
+        </div>
+
+        {/* 3. Links */}
+        <div className="text-sm text-black dark:text-white">
+          <ul className="font-sans flex flex-row space-x-6 items-center">
+            <li>
+              <a
+                className="flex items-center transition-all hover:text-gray-500"
+                rel="noopener noreferrer"
+                target="_blank"
+                href="https://github.com/Wu-Jinzhou/woods"
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5">
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.07102 11.3494L0.963068 10.2415L9.2017 1.98864H2.83807L2.85227 0.454545H11.8438V9.46023H10.2955L10.3097 3.09659L2.07102 11.3494Z" fill="currentColor" />
+                  </svg>
+                </span>
+                <p className="ml-2 h-6 leading-6">Github</p>
+              </a>
+            </li>
+            <li>
+              <a
+                className="flex items-center transition-all hover:text-gray-500"
+                rel="noopener noreferrer"
+                target="_blank"
+                href="https://www.jinzhouwu.com/"
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5">
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.07102 11.3494L0.963068 10.2415L9.2017 1.98864H2.83807L2.85227 0.454545H11.8438V9.46023H10.2955L10.3097 3.09659L2.07102 11.3494Z" fill="currentColor" />
+                  </svg>
+                </span>
+                <p className="ml-2 h-6 leading-6">Home</p>
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   )

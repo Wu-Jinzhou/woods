@@ -8,6 +8,8 @@
 ## 2. Link Management
 - **Add Link**: Paste a URL to add it. The app automatically fetches metadata (Title, Description, Image).
 - **Import Links**: Bulk import multiple URLs at once (one per line).
+    - **Visual Progress**: A progress bar tracks the import status.
+    - **Order Preservation**: Imported links are added such that the top URL in your list appears at the top of the view.
 - **View Modes**: Toggle between **Card View** (visual grid) and **List View** (compact list).
 - **Move Links**: Move links between folders individually or in bulk.
 - **Delete Links**: Remove links individually or in bulk.
@@ -20,7 +22,10 @@
     - Bullet Lists, Ordered Lists
     - Blockquotes
     - Code Blocks
-    - Inline and block equations (LaTeX)
+    - **LaTeX Equation Support**:
+        - **Inline**: Type `$E=mc^2$` to insert inline math.
+        - **Block**: Type `$$\sum_{i=0}^n i^2$$` to insert block math.
+        - **Editing**: Click any equation to open a **Bubble Menu** and edit the LaTeX code directly.
 - **Multi-line Titles**: Note titles auto-expand to fit long text.
 - **Auto-save**: Notes and titles are saved automatically on blur or interaction.
 
@@ -39,6 +44,6 @@ The application uses a sophisticated strategy to retrieve metadata:
 
 ## 5. User Interface
 - **Theme Support**:
-    - Follows OS light/dark preference automatically.
+    - Strictly follows the **System Theme** (Light/Dark) to blend seamlessly with the OS.
 - **Responsive Design**: Adapts to different screen sizes (though primarily optimized for desktop/tablet).
 - **Animations**: Subtle transitions and hover effects for a polished feel.

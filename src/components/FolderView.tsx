@@ -31,6 +31,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   const [isImporting, setIsImporting] = useState(false)
   const [newLinkUrl, setNewLinkUrl] = useState('')
   const [importText, setImportText] = useState('')
+  const [importProgress, setImportProgress] = useState(0)
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set())
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false)
@@ -55,6 +56,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
       .select('*')
       .eq('folder_id', folderId)
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
 
     if (error) {
       console.error('Error fetching links:', error)
@@ -105,32 +107,79 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
   const importLinks = async () => {
     if (!importText.trim() || !folderId) return
 
-    const urls = importText.split('\n').filter(line => line.trim().length > 0)
-    setIsImporting(false) // Close modal immediately, show loading in background or toast could be better but for now just close
+    const lines = importText.split('\n').filter(url => url.trim())
+    // Deduplicate or validate? Basic validation.
+    const validUrls: string[] = []
     
-    // Fetch metadata for all links in parallel
-    const linksWithMetadata = await Promise.all(urls.map(async (url) => {
-      const trimmedUrl = url.trim()
-      const { title, image } = await fetchMetadata(trimmedUrl)
-      return {
-        folder_id: folderId,
-        url: trimmedUrl,
-        title: title || trimmedUrl,
-        image_url: image || `https://www.google.com/s2/favicons?sz=64&domain_url=${trimmedUrl}`
+    for (const line of lines) {
+      try {
+        new URL(line.trim())
+        validUrls.push(line.trim())
+      } catch (e) {
+        // Skip
+      }
+    }
+    
+    if (validUrls.length === 0) {
+      setIsImporting(false)
+      return
+    }
+
+    setImportProgress(10) // Started
+    
+    const total = validUrls.length
+    let processed = 0
+    const now = new Date()
+
+    const linksToInsert = await Promise.all(validUrls.map(async (url, index) => {
+      try {
+        const { title, image } = await fetchMetadata(url)
+        processed++
+        setImportProgress(10 + Math.floor((processed / total) * 80)) // Up to 90%
+        
+        // Decrement time by 1 second for each subsequent item so the FIRST item has the LATEST time
+        // This ensures First (Top) of list -> Newest time -> Top of View (Sort DESC)
+        const time = new Date(now.getTime() - index * 1000).toISOString()
+
+        return {
+          folder_id: folderId,
+          url: url,
+          title: title || url,
+          image_url: image || `https://www.google.com/s2/favicons?sz=64&domain_url=${url}`,
+          created_at: time
+        }
+      } catch (e) {
+        console.error(`Failed to fetch metadata for ${url}`, e)
+        processed++
+        // Even if metadata fails, insert with raw URL
+        const time = new Date(now.getTime() - index * 1000).toISOString()
+        return {
+           folder_id: folderId,
+           url: url,
+           title: url,
+           image_url: `https://www.google.com/s2/favicons?sz=64&domain_url=${url}`,
+           created_at: time
+        }
       }
     }))
+    
+    setImportProgress(95)
 
     const { data, error } = await supabase
       .from('links')
-      .insert(linksWithMetadata)
+      .insert(linksToInsert)
       .select()
 
     if (error) {
       console.error('Error importing links:', error)
-    } else {
-      setLinks([...(data || []), ...links])
-      setImportText('')
+    } else if (data) {
+      fetchLinks() 
     }
+
+    setImportProgress(100)
+    setImportText('')
+    setIsImporting(false)
+    setImportProgress(0)
   }
 
   const refreshMetadata = async () => {
@@ -551,19 +600,38 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
                 onChange={(e) => setImportText(e.target.value)}
                 placeholder="Paste URLs here (one per line)..."
                 className="w-full h-48 p-3 mb-4 rounded-lg border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm font-mono"
+                disabled={importProgress > 0}
               />
+              
+              {importProgress > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                     <span>Importing...</span>
+                     <span>{importProgress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-600 transition-all duration-300 ease-out"
+                      style={{ width: `${importProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setIsImporting(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg"
+                  disabled={importProgress > 0}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={importLinks}
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg"
+                  disabled={!importText.trim() || importProgress > 0}
+                  className="px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Import Links
+                  {importProgress > 0 ? 'Importing...' : 'Import'}
                 </button>
               </div>
             </div>

@@ -1,164 +1,23 @@
 
-'use client'
+"use client"
 
-import { useEditor, EditorContent } from '@tiptap/react'
-import { Node, mergeAttributes, textInputRule } from '@tiptap/core'
+import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Underline from '@tiptap/extension-underline'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
-import katex from 'katex'
+import { migrateMathStrings, InlineMath, BlockMath } from '@tiptap/extension-mathematics'
 import 'katex/dist/katex.min.css'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, 
-  List, ListOrdered, CheckSquare, Quote, Code,
-  Heading1, Heading2, Heading3, X, ExternalLink, Sigma
+  List, ListOrdered, CheckSquare, Quote, Code, Sigma, ExternalLink, X,
+  Heading1, Heading2, Heading3
 } from 'lucide-react'
 import clsx from 'clsx'
-
-const inlineMathInputRegex = /\$(?!\$)([^$]+?)\$(?!\$)/ 
-const blockMathInputRegex = /\$\$([^$]+)\$\$/ 
-
-const MathInline = Node.create({
-  name: 'mathInline',
-  group: 'inline',
-  inline: true,
-  atom: true,
-  selectable: false,
-  addAttributes() {
-    return {
-      content: { default: '' },
-    }
-  },
-  parseHTML() {
-    return [{
-      tag: 'span[data-type="math-inline"]',
-      getAttrs: dom => ({
-        content: (dom as HTMLElement).textContent || '',
-      }),
-    }]
-  },
-  renderHTML({ node, HTMLAttributes }) {
-    return [
-      'span',
-      mergeAttributes(HTMLAttributes, { 'data-type': 'math-inline', class: 'math-inline' }),
-      node.attrs.content || '',
-    ]
-  },
-  addNodeView() {
-    return ({ node }) => {
-      const dom = document.createElement('span')
-      let currentContent = node.attrs.content as string
-
-      const render = (formula: string) => {
-        currentContent = formula
-        try {
-          dom.innerHTML = katex.renderToString(formula, { throwOnError: false, displayMode: false })
-        } catch {
-          dom.textContent = formula
-        }
-      }
-
-      dom.dataset.type = 'math-inline'
-      dom.className = 'math-inline'
-      render(currentContent)
-
-      return {
-        dom,
-        update: updatedNode => {
-          if (updatedNode.type.name !== this.name) return false
-          if (updatedNode.attrs.content !== currentContent) {
-            render(updatedNode.attrs.content)
-          }
-          return true
-        },
-      }
-    }
-  },
-  addInputRules() {
-    return [
-      textInputRule({
-        find: inlineMathInputRegex,
-        type: this.type,
-        getAttributes: match => ({
-          content: (match?.[1] || match?.[0] || '').trim(),
-        }),
-      }),
-    ]
-  },
-})
-
-const MathBlock = Node.create({
-  name: 'mathBlock',
-  group: 'block',
-  atom: true,
-  defining: true,
-  addAttributes() {
-    return {
-      content: { default: '' },
-    }
-  },
-  parseHTML() {
-    return [{
-      tag: 'div[data-type="math-block"]',
-      getAttrs: dom => ({
-        content: (dom as HTMLElement).textContent || '',
-      }),
-    }]
-  },
-  renderHTML({ node, HTMLAttributes }) {
-    return [
-      'div',
-      mergeAttributes(HTMLAttributes, { 'data-type': 'math-block', class: 'math-block' }),
-      node.attrs.content || '',
-    ]
-  },
-  addNodeView() {
-    return ({ node }) => {
-      const dom = document.createElement('div')
-      let currentContent = node.attrs.content as string
-
-      const render = (formula: string) => {
-        currentContent = formula
-        try {
-          dom.innerHTML = katex.renderToString(formula, { throwOnError: false, displayMode: true })
-        } catch {
-          dom.textContent = formula
-        }
-      }
-
-      dom.dataset.type = 'math-block'
-      dom.className = 'math-block my-4'
-      render(currentContent)
-
-      return {
-        dom,
-        update: updatedNode => {
-          if (updatedNode.type.name !== this.name) return false
-          if (updatedNode.attrs.content !== currentContent) {
-            render(updatedNode.attrs.content)
-          }
-          return true
-        },
-      }
-    }
-  },
-  addInputRules() {
-    return [
-      textInputRule({
-        find: blockMathInputRegex,
-        type: this.type,
-        getAttributes: match => ({
-          content: (match?.[1] || match?.[0] || '').trim(),
-        }),
-      }),
-    ]
-  },
-})
 
 interface NoteEditorProps {
   linkId: string
@@ -172,6 +31,8 @@ interface NoteEditorProps {
 export default function NoteEditor({ linkId, initialContent, url, title, onClose, onTitleChange }: NoteEditorProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [editableTitle, setEditableTitle] = useState(title || '')
+  const [mathInput, setMathInput] = useState('')
+  const [activeMathType, setActiveMathType] = useState<'inline' | 'block' | null>(null)
 
   // Update local title if prop changes (e.g. from external refresh)
   useEffect(() => {
@@ -206,8 +67,12 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
       Link.configure({
         openOnClick: false,
       }),
-      MathInline,
-      MathBlock,
+      InlineMath.configure({
+        katexOptions: { throwOnError: false },
+      }),
+      BlockMath.configure({
+        katexOptions: { throwOnError: false },
+      }),
     ],
     content: initialContent || '',
     editorProps: {
@@ -215,7 +80,40 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
         class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-200px)]',
       },
     },
+    onCreate: ({ editor }) => {
+      migrateMathStrings(editor)
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Sync math input when selection changes
+      if (editor.isActive('inlineMath')) {
+        setMathInput(editor.getAttributes('inlineMath').latex || '')
+        setActiveMathType('inline')
+      } else if (editor.isActive('blockMath')) {
+        setMathInput(editor.getAttributes('blockMath').latex || '')
+        setActiveMathType('block')
+      } else {
+        setActiveMathType(null)
+        setMathInput('')
+      }
+    }
   })
+
+  // Update mathInput when editor content updates (e.g. undo/redo)
+  useEffect(() => {
+    if (editor) {
+      if (editor.isActive('inlineMath')) {
+        setMathInput(editor.getAttributes('inlineMath').latex || '')
+        setActiveMathType('inline')
+      } else if (editor.isActive('blockMath')) {
+        setMathInput(editor.getAttributes('blockMath').latex || '')
+        setActiveMathType('block')
+      } else {
+        setActiveMathType(null)
+        setMathInput('')
+      }
+    }
+  }, [editor?.state.selection])
+
 
   const saveNote = async () => {
     if (!editor) return
@@ -264,36 +162,26 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
   )
 
   const insertInlineMath = () => {
-    if (!editor) return
-    const { from, to } = editor.state.selection
-    const selectedText = editor.state.doc.textBetween(from, to, ' ')
-    const formula = selectedText.trim() || 'a^2 + b^2 = c^2'
-
-    editor
-      .chain()
-      .focus()
-      .deleteSelection()
-      .insertContent({ type: 'mathInline', attrs: { content: formula } })
-      .run()
+    editor.chain().focus().insertInlineMath({ latex: 'E = mc^2' }).run()
   }
 
   const insertBlockMath = () => {
-    if (!editor) return
-    const { from, to } = editor.state.selection
-    const selectedText = editor.state.doc.textBetween(from, to, ' ')
-    const formula = selectedText.trim() || '\\int_a^b f(x)\\,dx'
+    editor.chain().focus().insertBlockMath({ latex: '\\sum_{i=0}^n i^2 = \\frac{(n^2+n)(2n+1)}{6}' }).run()
+  }
 
-    editor
-      .chain()
-      .focus()
-      .deleteSelection()
-      .insertContent({ type: 'mathBlock', attrs: { content: formula } })
-      .run()
+  const updateMath = (latex: string) => {
+    setMathInput(latex)
+    if (editor.isActive('inlineMath')) {
+      editor.chain().updateInlineMath({ latex }).run()
+    } else if (editor.isActive('blockMath')) {
+      editor.chain().updateBlockMath({ latex }).run()
+    }
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="flex-1 flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative">
       {/* Header */}
+
       <div className="px-8 py-6 border-b border-gray-100 dark:border-zinc-800 flex items-start justify-between bg-white dark:bg-zinc-950 z-10">
         <div className="flex-1 min-w-0 mr-4">
           <textarea
@@ -386,13 +274,28 @@ export default function NoteEditor({ linkId, initialContent, url, title, onClose
           <Code size={18} />
         </ToolbarButton>
         <div className="w-px h-6 bg-gray-200 dark:bg-zinc-800 mx-2" />
-        <ToolbarButton onClick={insertInlineMath} isActive={editor.isActive('mathInline')} title="Inline Equation">
+        <ToolbarButton onClick={insertInlineMath} isActive={editor.isActive('inlineMath')} title="Inline Equation">
           <Sigma size={18} />
         </ToolbarButton>
-        <ToolbarButton onClick={insertBlockMath} isActive={editor.isActive('mathBlock')} title="Block Equation">
+        <ToolbarButton onClick={insertBlockMath} isActive={editor.isActive('blockMath')} title="Block Equation">
           <Sigma size={18} className="rotate-90" />
         </ToolbarButton>
       </div>
+
+      {activeMathType && (
+        <div className="px-8 py-3 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center gap-3">
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+            {activeMathType === 'inline' ? 'Inline math' : 'Block math'}
+          </span>
+          <input
+            type="text"
+            value={mathInput}
+            onChange={(e) => updateMath(e.target.value)}
+            className="flex-1 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded px-3 py-2 text-sm font-mono text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400"
+            placeholder="Write LaTeX here (e.g. E = mc^2)"
+          />
+        </div>
+      )}
       
       {/* Editor Content */}
       <div className="flex-1 overflow-y-auto px-8 py-8">
