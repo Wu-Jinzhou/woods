@@ -71,7 +71,7 @@ export default function Sidebar({
   if (isCollapsed) {
     return (
       <div className={clsx(
-        "bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col items-center py-4 transition-all duration-300 w-12",
+        "bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col items-center py-4 transition-all duration-300 w-12 pb-[env(safe-area-inset-bottom)]",
         "fixed md:relative top-0 left-0 z-50 md:z-auto"
       )}>
         <button
@@ -103,7 +103,7 @@ export default function Sidebar({
 
   return (
     <div className={clsx(
-      "bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col transition-all duration-300 w-full md:w-64",
+      "bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col transition-all duration-300 w-full md:w-64 pb-[env(safe-area-inset-bottom)]",
       "fixed md:relative inset-0 md:inset-auto z-50 md:z-auto"
     )}>
       <div className="p-4 flex items-center justify-between">
@@ -195,7 +195,7 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-100 dark:border-zinc-800 space-y-3">
+      <div className="p-4 border-t border-gray-100 dark:border-zinc-800 space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {/* 1. Create Folder Button (Top) */}
         {isCreating && canEdit ? (
           <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">

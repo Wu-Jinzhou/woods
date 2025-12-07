@@ -609,7 +609,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
 
       {/* Content */}
       <div
-        className="flex-1 overflow-y-auto py-6 px-4 sm:px-6"
+        className="flex-1 overflow-y-auto py-6"
       >
         {isAdding && canEdit && (
           <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
