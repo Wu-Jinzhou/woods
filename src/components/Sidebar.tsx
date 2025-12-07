@@ -1,0 +1,263 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import {
+  Folder, Plus, Trash2, ChevronLeft, ChevronRight, X,
+  MoreVertical, Edit2, Check, Moon, Sun, Laptop, FileText
+} from 'lucide-react'
+import clsx from 'clsx'
+import Image from 'next/image'
+import { useTheme } from 'next-themes'
+
+interface SidebarProps {
+  folders: { id: string, name: string }[]
+  selectedFolderId: string | null
+  onSelectFolder: (id: string) => void
+  onAddFolder: (name: string) => Promise<void>
+  onDeleteFolder: (id: string) => Promise<void>
+  isCollapsed: boolean
+  onToggleCollapse: () => void
+  openLinks: { id: string, title: string | null, url: string }[]
+  activeLinkId: string | null
+  onSelectOpenLink: (id: string) => void
+  onCloseOpenLink: (id: string) => void
+}
+
+export default function Sidebar({
+  folders,
+  selectedFolderId,
+  onSelectFolder,
+  onAddFolder,
+  onDeleteFolder,
+  isCollapsed,
+  onToggleCollapse,
+  openLinks,
+  activeLinkId,
+  onSelectOpenLink,
+  onCloseOpenLink
+}: SidebarProps) {
+  const [isCreating, setIsCreating] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleCreateFolder = async (e: React.FormEvent | React.MouseEvent) => {
+    e.preventDefault()
+    if (!newFolderName.trim()) return
+
+    await onAddFolder(newFolderName)
+    setNewFolderName('')
+    setIsCreating(false)
+  }
+
+  const handleDeleteFolder = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    if (window.confirm('Are you sure you want to delete this folder? All links inside will be deleted.')) {
+      await onDeleteFolder(id)
+      if (selectedFolderId === id) {
+        onSelectFolder('')
+      }
+    }
+  }
+
+  if (isCollapsed) {
+    return (
+      <div className="w-12 bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col items-center py-4 transition-all duration-300">
+        <button
+          onClick={onToggleCollapse}
+          className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg mb-4"
+        >
+          <ChevronRight size={20} />
+        </button>
+        <div className="flex flex-col gap-2 w-full px-2">
+          {folders.map(folder => (
+            <button
+              key={folder.id}
+              onClick={() => onSelectFolder(folder.id)}
+              className={clsx(
+                "p-2 rounded-lg flex justify-center transition-colors",
+                selectedFolderId === folder.id
+                  ? "bg-gray-200 dark:bg-zinc-800 text-gray-900 dark:text-white"
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50"
+              )}
+              title={folder.name}
+            >
+              <Folder size={20} />
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-64 bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col transition-all duration-300">
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img src="/images/woods_text_logo.png" alt="Woods" className="h-6 object-contain dark:invert" />
+        </div>
+        <button
+          onClick={onToggleCollapse}
+          className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-md"
+        >
+          <ChevronLeft size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        <div className="mb-6">
+          <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-2">Folders</h3>
+          <div className="space-y-0.5">
+            {folders.map(folder => (
+              <div key={folder.id}>
+                <div
+                  onClick={() => onSelectFolder(folder.id)}
+                  className={clsx(
+                    "group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all",
+                    selectedFolderId === folder.id 
+                      ? "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white font-medium" 
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-gray-200"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Folder size={18} className={clsx(
+                      selectedFolderId === folder.id ? "text-blue-500 fill-blue-500/20" : "text-gray-400 dark:text-gray-500"
+                    )} />
+                    <span className="truncate">{folder.name}</span>
+                  </div>
+                  
+                  <button
+                    onClick={(e) => handleDeleteFolder(e, folder.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                {/* Open Tabs for this folder */}
+                {selectedFolderId === folder.id && openLinks.length > 0 && (
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-gray-100 dark:border-zinc-800 pl-2">
+                    {openLinks.map(link => (
+                      <div 
+                        key={link.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onSelectOpenLink(link.id)
+                        }}
+                        className={clsx(
+                          "group/link flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer text-xs transition-colors",
+                          activeLinkId === link.id
+                            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText size={12} />
+                          <span className="truncate">{link.title || link.url}</span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onCloseOpenLink(link.id)
+                          }}
+                          className="opacity-0 group-hover/link:opacity-100 p-0.5 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-100 dark:border-zinc-800">
+        <div className="flex items-center justify-between px-2 py-2 text-xs text-gray-400 dark:text-gray-500">
+          <span>v0.2.0</span>
+          
+          {mounted && (
+            <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+              <button
+                onClick={() => setTheme('light')}
+                className={clsx(
+                  "p-1.5 rounded-md transition-all",
+                  theme === 'light' ? "bg-white dark:bg-zinc-600 text-yellow-500 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                )}
+                title="Light Mode"
+              >
+                <Sun size={14} />
+              </button>
+              <button
+                onClick={() => setTheme('system')}
+                className={clsx(
+                  "p-1.5 rounded-md transition-all",
+                  theme === 'system' ? "bg-white dark:bg-zinc-600 text-blue-500 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                )}
+                title="System Mode"
+              >
+                <Laptop size={14} />
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={clsx(
+                  "p-1.5 rounded-md transition-all",
+                  theme === 'dark' ? "bg-white dark:bg-zinc-600 text-purple-500 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                )}
+                title="Dark Mode"
+              >
+                <Moon size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+        {isCreating ? (
+          <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Folder Name"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateFolder(e)
+                if (e.key === 'Escape') setIsCreating(false)
+              }}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateFolder}
+                className="flex-1 px-3 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-black rounded-md hover:opacity-90 font-medium"
+              >
+                Create
+              </button>
+              <button
+                onClick={() => setIsCreating(false)}
+                className="flex-1 px-3 py-1.5 text-xs bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-zinc-600 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsCreating(true)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+          >
+            <Plus size={16} />
+            New Folder
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
