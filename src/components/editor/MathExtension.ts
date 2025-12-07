@@ -123,21 +123,23 @@ export const MathExtension = Node.create<MathExtensionOptions>({
         update: (updatedNode) => {
           if (updatedNode.type !== this.type) return false
           
-          if (updatedNode.attrs.latex !== node.attrs.latex || updatedNode.attrs.displayMode !== node.attrs.displayMode) {
-             node.attrs.latex = updatedNode.attrs.latex
-             node.attrs.displayMode = updatedNode.attrs.displayMode
-             
-             if (node.attrs.displayMode) {
-                dom.style.display = 'block'
-                dom.style.textAlign = 'center'
-                dom.style.margin = '1em 0'
-             } else {
-                dom.style.display = 'inline-block'
-                dom.style.textAlign = 'unset'
-                dom.style.margin = 'unset'
-             }
-             
-             render()
+          if (
+            updatedNode.attrs.latex !== node.attrs.latex ||
+            updatedNode.attrs.displayMode !== node.attrs.displayMode
+          ) {
+            const nextDisplayMode = updatedNode.attrs.displayMode
+
+            if (nextDisplayMode) {
+              dom.style.display = 'block'
+              dom.style.textAlign = 'center'
+              dom.style.margin = '1em 0'
+            } else {
+              dom.style.display = 'inline-block'
+              dom.style.textAlign = 'unset'
+              dom.style.margin = 'unset'
+            }
+
+            render()
           }
           return true
         },

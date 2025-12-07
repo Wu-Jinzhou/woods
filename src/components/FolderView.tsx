@@ -455,10 +455,11 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
 
 
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-950 z-10">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">{folderName}</h2>
-        
-        <div className="flex items-center gap-3">
+      <div className="p-6 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">{folderName}</h2>
+          
+          <div className="flex items-center gap-3 flex-wrap">
           {isSelectionMode ? (
             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-200">
               <button
@@ -549,6 +550,7 @@ export default function FolderView({ folderId, folderName, onOpenNote }: FolderV
               </button>
             </>
           )}
+        </div>
         </div>
       </div>
 

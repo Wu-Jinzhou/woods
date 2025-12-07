@@ -21,6 +21,7 @@ interface SidebarProps {
   activeLinkId: string | null
   onSelectOpenLink: (id: string) => void
   onCloseOpenLink: (id: string) => void
+  onLogoClick?: () => void
 }
 
 export default function Sidebar({
@@ -34,7 +35,8 @@ export default function Sidebar({
   openLinks,
   activeLinkId,
   onSelectOpenLink,
-  onCloseOpenLink
+  onCloseOpenLink,
+  onLogoClick
 }: SidebarProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
@@ -60,7 +62,10 @@ export default function Sidebar({
 
   if (isCollapsed) {
     return (
-      <div className="w-12 bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col items-center py-4 transition-all duration-300">
+      <div className={clsx(
+        "bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col items-center py-4 transition-all duration-300 w-12",
+        "fixed md:relative top-0 left-0 z-50 md:z-auto"
+      )}>
         <button
           onClick={onToggleCollapse}
           className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg mb-4"
@@ -89,11 +94,18 @@ export default function Sidebar({
   }
 
   return (
-    <div className="w-64 bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col transition-all duration-300">
+    <div className={clsx(
+      "bg-gray-50 dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen flex flex-col transition-all duration-300 w-full md:w-64",
+      "fixed md:relative inset-0 md:inset-auto z-50 md:z-auto"
+    )}>
       <div className="p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onLogoClick}
+          className="flex items-center gap-2 focus:outline-none"
+        >
           <img src="/images/woods_text_logo.png" alt="Woods" className="h-6 object-contain dark:invert" />
-        </div>
+        </button>
         <button
           onClick={onToggleCollapse}
           className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-md"
@@ -173,7 +185,7 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-100 dark:border-zinc-800 space-y-6">
+      <div className="p-4 border-t border-gray-100 dark:border-zinc-800 space-y-3">
         {/* 1. Create Folder Button (Top) */}
         {isCreating ? (
           <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
@@ -214,19 +226,9 @@ export default function Sidebar({
           </button>
         )}
 
-        {/* 2. Introduction Text */}
-        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 leading-relaxed">
-          <p>
-            <strong className="text-gray-900 dark:text-gray-100">Woods</strong> is my personal knowledge base that helps me organize knowledge and tabs.
-          </p>
-          <p className="opacity-80">
-            It is currently being developed for my personal use and is expected to roll out to other users in the future.
-          </p>
-        </div>
-
         {/* 3. Links */}
-        <div className="text-sm text-black dark:text-white">
-          <ul className="font-sans flex flex-row space-x-6 items-center">
+        <div className="text-sm text-black dark:text-white space-y-2 p-3 rounded-lg bg-gray-100 dark:bg-zinc-800">
+          <ul className="font-sans flex flex-col space-y-2">
             <li>
               <a
                 className="flex items-center transition-all hover:text-gray-500"
@@ -258,6 +260,7 @@ export default function Sidebar({
               </a>
             </li>
           </ul>
+          <p className="ml-[2px] text-xs text-gray-600 dark:text-gray-300">Made by Jinzhou Wu</p>
         </div>
       </div>
     </div>
