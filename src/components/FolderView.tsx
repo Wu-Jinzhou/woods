@@ -401,7 +401,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
             setLinks(prev => prev.map(l => l.id === linkId ? { 
               ...l, 
               title: data.title,
-              image_url: data.image || `/api/favicon?url=${encodeURIComponent(link.url)}`
+              image_url: data.image || `/api/favicon?url=${encodeURIComponent(l.url)}`
             } : l))
             return // Success
           }
@@ -453,6 +453,14 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
         <p>Select a folder to view links</p>
       </div>
     )
+  }
+
+  const handleLinkClick = (id: string) => {
+    if (isSelectionMode && canEdit) {
+      toggleSelection(id)
+      return
+    }
+    onOpenNote(id)
   }
 
   // Move Modal
@@ -524,7 +532,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
           </div>
 
           {isSelectionMode && canEdit ? (
-            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-200">
+            <div className="flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-right-4 duration-200">
               <button
                 onClick={selectAll}
                 className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
@@ -547,23 +555,25 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
               <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">
                 {selectedLinkIds.size} selected
               </span>
-              <button
-                onClick={deleteSelected}
-                disabled={selectedLinkIds.size === 0}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <Trash2 size={16} />
-                Delete
-              </button>
-              <button
-                onClick={() => {
-                  setIsSelectionMode(false)
-                  setSelectedLinkIds(new Set())
-                }}
-                className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={deleteSelected}
+                  disabled={selectedLinkIds.size === 0}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setIsSelectionMode(false)
+                    setSelectedLinkIds(new Set())
+                  }}
+                  className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors w-full sm:w-auto text-center"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           ) : canEdit ? (
             <>
@@ -613,13 +623,13 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
       >
         {isAdding && canEdit && (
           <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-col sm:flex-row">
               <input
                 type="url"
                 value={newLinkUrl}
                 onChange={(e) => setNewLinkUrl(e.target.value)}
                 placeholder="Paste URL here..."
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-gray-500 w-full"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') addLink()
@@ -629,13 +639,13 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
               <button
                 onClick={addLink}
                 disabled={isLoadingMetadata}
-                className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 font-medium disabled:opacity-50"
+                className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 font-medium disabled:opacity-50 w-full sm:w-auto"
               >
                 {isLoadingMetadata ? 'Fetching...' : 'Save'}
               </button>
               <button
                 onClick={() => setIsAdding(false)}
-                className="px-4 py-2 bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-zinc-700 font-medium"
+                className="px-4 py-2 bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-zinc-700 font-medium w-full sm:w-auto"
               >
                 Cancel
               </button>
@@ -644,7 +654,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
         )}
 
         {isImporting && canEdit && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-xl shadow-2xl p-6 border border-gray-200 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Import Links</h3>
@@ -731,7 +741,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
                     link={link}
                     isRefetching={refetchingLinkIds.has(link.id)}
                     canEdit={canEdit}
-                    onOpenNote={() => onOpenNote(link.id)} 
+                    onOpenNote={() => handleLinkClick(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}
                     onMove={() => {
@@ -745,7 +755,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
                     link={link}
                     isRefetching={refetchingLinkIds.has(link.id)}
                     canEdit={canEdit}
-                    onOpenNote={() => onOpenNote(link.id)} 
+                    onOpenNote={() => handleLinkClick(link.id)} 
                     onDeleteLink={() => deleteLink(link.id)}
                     onDeleteNote={() => clearNote(link.id)}
                     onMove={() => {
