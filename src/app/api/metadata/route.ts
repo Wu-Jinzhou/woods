@@ -81,7 +81,24 @@ export async function GET(request: Request) {
     }
 
     // 3. General Scraping
-    const response = await fetch(url, { headers: baseHeaders })
+    let response: Response
+    try {
+      response = await fetch(url, { headers: baseHeaders, redirect: 'follow', cache: 'no-store' })
+    } catch (e) {
+      return NextResponse.json({
+        title: url,
+        description: '',
+        image: null
+      })
+    }
+
+    if (!response.ok) {
+      return NextResponse.json({
+        title: url,
+        description: '',
+        image: null
+      })
+    }
 
     const contentType = response.headers.get('content-type') || ''
     
@@ -156,7 +173,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       title: title.trim(),
       description: description.trim(),
-      image: image
+      image: image || `/api/favicon?url=${encodeURIComponent(url)}`
     })
 
   } catch (error) {

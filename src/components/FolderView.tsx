@@ -120,7 +120,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
     const { title, image } = await fetchMetadata(newLinkUrl)
     setIsLoadingMetadata(false)
 
-    const finalImage = image || `https://www.google.com/s2/favicons?sz=64&domain_url=${newLinkUrl}`
+    const finalImage = image || `/api/favicon?url=${encodeURIComponent(newLinkUrl)}`
 
     const { data, error } = await supabase
       .from('links')
@@ -182,7 +182,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
           folder_id: folderId,
           url: url,
           title: title || url,
-          image_url: image || `https://www.google.com/s2/favicons?sz=64&domain_url=${url}`,
+          image_url: image || `/api/favicon?url=${encodeURIComponent(url)}`,
           created_at: time
         }
       } catch (e) {
@@ -194,7 +194,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
            folder_id: folderId,
            url: url,
            title: url,
-           image_url: `https://www.google.com/s2/favicons?sz=64&domain_url=${url}`,
+           image_url: `/api/favicon?url=${encodeURIComponent(url)}`,
            created_at: time
         }
       }
@@ -234,7 +234,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
 
       try {
         const { title, image } = await fetchMetadata(link.url)
-        const finalImage = image || `https://www.google.com/s2/favicons?sz=64&domain_url=${link.url}`
+        const finalImage = image || `/api/favicon?url=${encodeURIComponent(link.url)}`
         
         const { error } = await supabase
           .from('links')
@@ -401,7 +401,7 @@ export default function FolderView({ folderId, folderName, onOpenNote, canEdit }
             setLinks(prev => prev.map(l => l.id === linkId ? { 
               ...l, 
               title: data.title,
-              image_url: data.image 
+              image_url: data.image || `/api/favicon?url=${encodeURIComponent(link.url)}`
             } : l))
             return // Success
           }

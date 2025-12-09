@@ -35,7 +35,7 @@ export default function LinkList({ link, isRefetching, canEdit = true, onOpenNot
             alt={link.title || link.url}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = `https://www.google.com/s2/favicons?sz=64&domain_url=${link.url}`
+              e.currentTarget.src = `/api/favicon?url=${encodeURIComponent(link.url)}`
               e.currentTarget.className = "w-full h-full object-contain p-3 opacity-50"
             }}
           />
